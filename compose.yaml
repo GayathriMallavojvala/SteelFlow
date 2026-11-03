@@ -1,0 +1,43 @@
+# LOCAL DEMONSTRATION ONLY. Replace all credentials and harden deployment for real use.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: steelflow
+      POSTGRES_USER: steelflow
+      POSTGRES_PASSWORD: ${STEELFLOW_DB_PASSWORD:-local-demo-db-password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U steelflow -d steelflow"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  seed:
+    build: .
+    command: ["python", "-m", "app.seed_demo"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://steelflow:${STEELFLOW_DB_PASSWORD:-local-demo-db-password}@db:5432/steelflow
+      STEELFLOW_DEMO_MODE: "1"
+      STEELFLOW_DEMO_PASSWORD: ${STEELFLOW_DEMO_PASSWORD:-SteelFlowDemo!2026}
+    restart: "no"
+
+  app:
+    build: .
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgresql+psycopg://steelflow:${STEELFLOW_DB_PASSWORD:-local-demo-db-password}@db:5432/steelflow
+      STEELFLOW_DEMO_MODE: "1"
+      STEELFLOW_DEMO_PASSWORD: ${STEELFLOW_DEMO_PASSWORD:-SteelFlowDemo!2026}
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

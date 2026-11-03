@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: steelflow-demo
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: bash start_public_demo.sh
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: STEELFLOW_DEMO_PASSWORD
+        sync: false
+      - key: STEELFLOW_DEMO_MODE
+        value: "1"
